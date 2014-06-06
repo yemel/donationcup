@@ -1,0 +1,111 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Donation Cup</title>
+<style type="text/css">
+  #qr canvas { width: 150px; height: 150px; }
+</style>
+</head>
+<body>
+
+<h2>Charities</h2>
+<select id="charities">
+  <option selected="true" style="display:none;">Select charity</option>
+</select>
+
+<h2>Donate now</h2>
+Name: <span id="name"></span><br/>
+Address: <span id="address">-</span><br/>
+QR: <span id="qr"></span><br/>
+
+<h2>Tracking</h2>
+<ul id="transactions"></ul>
+<span id="info"></span>
+
+<script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
+<script src="http://cdnjs.cloudflare.com/ajax/libs/jquery.qrcode/1.0/jquery.qrcode.min.js"></script>
+<script src="http://cdnjs.cloudflare.com/ajax/libs/jquery-timeago/1.4.0/jquery.timeago.js"></script>
+<script type="text/javascript">
+  $(function(){
+
+    var TRACKING_ADDRESS = null;
+    var TRACKING_TX_SHOW = 4;
+    var TRACKING_CACHE   = {};
+
+    // Populate Charities
+    $.get('http://donationcup.herokuapp.com/charities', function(data){
+      data.forEach(function(c){
+        var tpl = '<option value="$ADDRESS">$LABEL</option>';
+        var option = tpl.replace('$ADDRESS', c.address).replace('$LABEL', c.label);
+        $('#charities').append(option);
+      });
+    });
+
+    $('#charities').change(function(option){
+      $('#name').text($("#charities option:selected").text());
+      var address = option.target.value;
+      $('#address').text(address);
+      $('#qr').html('').qrcode("bitcoin:"+address);
+      TRACKING_ADDRESS = address;
+      refreshTracking();
+    });
+
+    function appendTx(tx){
+      var tmpl = '<li><a href="http://chain.localbitcoins.com/tx/$TXID">$TXID2</a> - $AMOUT BTC - $TIME</li>';
+      var displayID = tx.id.slice(0, 22) + '...';
+      var li = tmpl.replace('$TXID', tx.id)
+                   .replace('$TXID2', displayID)
+                   .replace('$AMOUT', tx.amount)
+                   .replace('$TIME', $.timeago(new Date(tx.time * 1000)));
+      $('#transactions').append(li);
+    }
+
+    function getAmount(vouts, address){
+      var total = 0;
+      vouts.forEach(function(vout){
+        if(vout.scriptPubKey.addresses.indexOf(address) != -1) total += vout.value;
+      });
+      return total.toFixed(6);
+    }
+
+    function displayTransaction(txid){
+      if(TRACKING_CACHE[txid]) {
+        appendTx(TRACKING_CACHE[txid]);
+        return;
+      }
+
+      var url = 'http://chain.localbitcoins.com/api/tx/';
+      $.get(url + txid, function(data){
+        var amount = getAmount(data.vout, TRACKING_ADDRESS);
+        TRACKING_CACHE[txid] = {id: txid, amount: amount, time: data.firstSeenTs};
+        appendTx(TRACKING_CACHE[txid]);
+      });
+    }
+
+    function refreshTracking(){
+      if(!TRACKING_ADDRESS) {
+        $('#transactions').html("");
+        $('#info').text('Select a charity to see the donations');
+        return;
+      }
+
+      var url = 'http://chain.localbitcoins.com/api/addr/';
+      $.get(url + TRACKING_ADDRESS, function(data){
+        $('#transactions').html("");
+        var txs = data['transactions'].slice(0, TRACKING_TX_SHOW);
+        txs.forEach(displayTransaction);
+        $('#info').text('');
+
+        console.log(txs);
+        if(!txs.length) $('#info').text('No donations received yet!'); // no transaction message
+      });
+    }
+
+    refreshTracking();
+    setInterval(refreshTracking, 5000); // Refresh transactions
+  });
+</script>
+
+</body>
+</html>

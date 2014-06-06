@@ -15,6 +15,7 @@ var ADDRESSES = 'https://blockchain.info/es/merchant/$guid/list?password=$main_p
 
 var app = express();
 app.use(logfmt.requestLogger());
+app.use(express.static(__dirname + '/public'));
 
 var cors = function(res) {
   res.header("Access-Control-Allow-Origin", "*");

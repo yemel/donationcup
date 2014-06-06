@@ -1,0 +1,63 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Donation Cup</title>
+<style type="text/css">
+  #qr canvas { width: 150px; height: 150px; }
+</style>
+</head>
+<body>
+
+<h2>Create Splitter Address</h2>
+<select id="charities">
+  <option selected="true" value="" style="display:none;">Select charity</option>
+</select>
+<select id="fans">
+  <option selected="true" value="" style="display:none;">Select fan</option>
+</select>
+<button id="create">Create</button>
+
+<h2>Donation Addresses</h2>
+<ul id="addresses">
+  <li>Charity: Example - Fan: Example - Address: 1Example123091230</li>
+</ul>
+
+
+<script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
+<script src="http://cdnjs.cloudflare.com/ajax/libs/jquery.qrcode/1.0/jquery.qrcode.min.js"></script>
+<script type="text/javascript">
+  $(function(){
+
+    // Populate Charities
+    $.get('http://donationcup.herokuapp.com/charities', function(data){
+      data.forEach(function(c){
+        var tpl = '<option value="$ADDRESS">$LABEL</option>';
+        var option = tpl.replace('$ADDRESS', c.address).replace('$LABEL', c.label);
+        $('#charities').append(option);
+      });
+    });
+
+    // Populate Fans
+    $.get('http://donationcup.herokuapp.com/fans', function(data){
+      data.forEach(function(c){
+        var tpl = '<option value="$ADDRESS">$LABEL</option>';
+        var option = tpl.replace('$ADDRESS', c.address).replace('$LABEL', c.label);
+        $('#fans').append(option);
+      });
+    });
+
+    $('#create').click(function(){
+      var charity = $('#charities').val();
+      var fan = $('#fans').val();
+
+      if (!charity || !fan) return alert('Select Charity and Fan');
+
+      alert('Creando Address: 70% ' + charity + ' - 30% ' + fan);
+    });
+
+  });
+</script>
+
+</body>
+</html>
