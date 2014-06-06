@@ -16,6 +16,12 @@ var ADDRESSES = 'https://blockchain.info/es/merchant/$guid/list?password=$main_p
 var app = express();
 app.use(logfmt.requestLogger());
 
+app.all('/', function(req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "X-Requested-With");
+  next();
+ });
+
 /* GET home page. */
 app.get('/charities', function(req, res) {
   var url = ADDRESSES.replace('$guid', CHARITY_GUID).replace('$main_password', CHARITY_PASS);
